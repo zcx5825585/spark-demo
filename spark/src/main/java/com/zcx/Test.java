@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 /**
- * 类说明
+ * FutureTask非阻塞
  *
  * @author zcx
  * @version 创建时间：2018/11/22  11:20
@@ -32,11 +32,12 @@ public class Test {
         FutureTask<Chuju> task = new FutureTask<Chuju>(() -> {
             System.out.println("第一步：下单");
             System.out.println("第一步：等待送货");
-            Thread.sleep(5000);  // 模拟送货时间
+            Thread.sleep(10000);  // 模拟送货时间
             System.out.println("第一步：快递送到");
             return new Chuju();
         });
-        new Thread(task).start();
+        Thread online = new Thread(task);
+        online.start();
         // 第二步 去超市购买食材
         Thread.sleep(2000);  // 模拟购买食材时间
         Shicai shicai = new Shicai();

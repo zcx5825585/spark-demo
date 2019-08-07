@@ -4,8 +4,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.springframework.stereotype.Component;
 import scala.Tuple2;
 
@@ -42,43 +40,42 @@ public class MovieLensUserData implements Serializable {
 
     public String countUserData() {
         // 统计用户数
-        JavaRDD<String> userCountRDD = userData.map(new Function<String[], String>() {
-            @Override
-            public String call(String[] strings) throws Exception {
-                return strings[0];
-            }
-        });
-        long userCount = userCountRDD.count();
-
+//        JavaRDD<String> userCountRDD = userData.map(new Function<String[], String>() {
+//            @Override
+//            public String call(String[] strings) throws Exception {
+//                return strings[0];
+//            }
+//        });
+//        long userCount = userCountRDD.count();
         // 统计性别数
-
-        JavaRDD<String> genderCountRDD = userData.map(new Function<String[], String>() {
-            @Override
-            public String call(String[] strings) throws Exception {
-                return strings[2];
-            }
-        });
-        long genderCount = genderCountRDD.distinct().count();
-
+//        JavaRDD<String> genderCountRDD = userData.map(new Function<String[], String>() {
+//            @Override
+//            public String call(String[] strings) throws Exception {
+//                return strings[2];
+//            }
+//        });
+//        long genderCount = genderCountRDD.distinct().count();
         //统计职业数
-
-        JavaRDD<String> occupationCountRDD = userData.map(new Function<String[], String>() {
-            @Override
-            public String call(String[] strings) throws Exception {
-                return strings[3];
-            }
-        });
-        long occupationCount = occupationCountRDD.distinct().count();
-
+//        JavaRDD<String> occupationCountRDD = userData.map(new Function<String[], String>() {
+//            @Override
+//            public String call(String[] strings) throws Exception {
+//                return strings[3];
+//            }
+//        });
+//        long occupationCount = occupationCountRDD.distinct().count();
         //统计邮编数
+//        JavaRDD<String> zipcodeCountRDD = userData.map(new Function<String[], String>() {
+//            @Override
+//            public String call(String[] strings) throws Exception {
+//                return strings[4];
+//            }
+//        });
+//        long zipcodeCount = zipcodeCountRDD.distinct().count();
 
-        JavaRDD<String> zipcodeCountRDD = userData.map(new Function<String[], String>() {
-            @Override
-            public String call(String[] strings) throws Exception {
-                return strings[4];
-            }
-        });
-        long zipcodeCount = zipcodeCountRDD.distinct().count();
+        long userCount = userData.map(strings -> strings[0]).count();
+        long genderCount = userData.map(strings -> strings[2]).distinct().count();
+        long occupationCount = userData.map(strings -> strings[3]).distinct().count();
+        long zipcodeCount = userData.map(strings -> strings[4]).distinct().count();
 
         return "用户数:" + userCount + ", 性别数:" + genderCount + ", 职业数:" + occupationCount + ", 邮编数:" + zipcodeCount;
     }
@@ -92,21 +89,27 @@ public class MovieLensUserData implements Serializable {
     public Map<Integer, Integer> age() {
 
         //扩充列数
-        JavaPairRDD<Integer, Integer> ageWithTime = userData.mapToPair(new PairFunction<String[], Integer, Integer>() {
-            @Override
-            public Tuple2<Integer, Integer> call(String[] s) throws Exception {
-                return new Tuple2<Integer, Integer>(Integer.parseInt(s[1]), 1);
-            }
-        });
+//        JavaPairRDD<Integer, Integer> ageWithTime = userData.mapToPair(new PairFunction<String[], Integer, Integer>() {
+//            @Override
+//            public Tuple2<Integer, Integer> call(String[] s) throws Exception {
+//                return new Tuple2<Integer, Integer>(Integer.parseInt(s[1]), 1);
+//            }
+//        });
 
         //根据key进行分组 每组循环使用call方法得到该组的唯一结果
         // 3个泛型为 key 原数据value 结果value
-        JavaPairRDD<Integer, Integer> ageWithCount = ageWithTime.reduceByKey(new Function2<Integer, Integer, Integer>() {
-            @Override
-            public Integer call(Integer integer, Integer integer2) throws Exception {
-                return integer + integer2;//相同Key的2条数据value相加
-            }
-        });
+//        JavaPairRDD<Integer, Integer> ageWithCount = ageWithTime.reduceByKey(new Function2<Integer, Integer, Integer>() {
+//            @Override
+//            public Integer call(Integer integer, Integer integer2) throws Exception {
+//                return integer + integer2;//相同Key的2条数据value相加
+//            }
+//        });
+        JavaPairRDD<Integer, Integer> ageWithCount = userData
+                //扩充列数
+                .mapToPair(s -> new Tuple2<Integer, Integer>(Integer.parseInt(s[1]), 1))
+                //相同Key的2条数据value相加
+                .reduceByKey((integer, integer2) -> (integer + integer2));
+
         ageWithCount = ageWithCount.sortByKey(true);
         return ageWithCount.collectAsMap();
     }

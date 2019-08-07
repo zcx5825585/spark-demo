@@ -3,7 +3,6 @@ package com.zcx.spark;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.mllib.evaluation.RegressionMetrics;
 import org.apache.spark.mllib.recommendation.ALS;
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel;
@@ -107,7 +106,8 @@ public class RecommendationExecutor implements Serializable {
         return model;
     }
 
-    //---------------------------------------------------------------------------------------
+    //调整参数以获得更优结果
+    //todo 使用更有效的参数调节方式
     public void best() {
         int[] a = {7};
         int[] b = {25};
@@ -242,24 +242,32 @@ public class RecommendationExecutor implements Serializable {
     //按userID计数
     private Map<Integer, Integer> userRateCount() {
         //转换为 <用户ID,单次评分>
-        JavaPairRDD<Integer, Integer> userRate = rateData.mapToPair(new PairFunction<String[], Integer, Integer>() {
-            @Override
-            public Tuple2<Integer, Integer> call(String[] strings) throws Exception {
-                return new Tuple2<Integer, Integer>(Integer.parseInt(strings[0]), Integer.parseInt(strings[2]));
-            }
-        });
+//        JavaPairRDD<Integer, Integer> userRate = rateData.mapToPair(new PairFunction<String[], Integer, Integer>() {
+//            @Override
+//            public Tuple2<Integer, Integer> call(String[] strings) throws Exception {
+//                return new Tuple2<Integer, Integer>(Integer.parseInt(strings[0]), Integer.parseInt(strings[2]));
+//            }
+//        });
+        JavaPairRDD<Integer, Integer> userRate = rateData.mapToPair(strings -> new Tuple2<Integer, Integer>(Integer.parseInt(strings[0]), Integer.parseInt(strings[2])));
         //根据 用户ID 分组         得到 <用户ID,该用户评分集合>
         JavaPairRDD<Integer, Iterable<Integer>> rateByUserRDD = userRate.groupByKey();
-        //转换为 <用户ID,该用户评分此数>
-        JavaPairRDD<Integer, Integer> rateCountByuserRdd = rateByUserRDD.mapToPair(new PairFunction<Tuple2<Integer, Iterable<Integer>>, Integer, Integer>() {
-            @Override
-            public Tuple2<Integer, Integer> call(Tuple2<Integer, Iterable<Integer>> integerIterableTuple2) throws Exception {
-                int count = 0;
-                for (Integer i : integerIterableTuple2._2()) {
-                    count++;
-                }
-                return new Tuple2<>(integerIterableTuple2._1, count);
+        //转换为 <用户ID,该用户评分次数>
+//        JavaPairRDD<Integer, Integer> rateCountByuserRdd = rateByUserRDD.mapToPair(new PairFunction<Tuple2<Integer, Iterable<Integer>>, Integer, Integer>() {
+//            @Override
+//            public Tuple2<Integer, Integer> call(Tuple2<Integer, Iterable<Integer>> integerIterableTuple2) throws Exception {
+//                int count = 0;
+//                for (Integer i : integerIterableTuple2._2()) {
+//                    count++;
+//                }
+//                return new Tuple2<>(integerIterableTuple2._1, count);
+//            }
+//        });
+        JavaPairRDD<Integer, Integer> rateCountByuserRdd = rateByUserRDD.mapToPair(integerIterableTuple2 -> {
+            int count = 0;
+            for (Integer i : integerIterableTuple2._2()) {
+                count++;
             }
+            return new Tuple2<>(integerIterableTuple2._1, count);
         });
         //根据 用户ID 排序
         rateCountByuserRdd = rateCountByuserRdd.sortByKey(true);
